@@ -1,8 +1,7 @@
 import { NextResponse } from 'next/server';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import Groq from 'groq-sdk';
-import * as fs from 'fs/promises';
-import * as path from 'path';
+import { KNOWLEDGE_BASE } from '@/lib/knowledge';
 
 // Load keys
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY || '';
@@ -13,21 +12,14 @@ const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
 const groq = new Groq({ apiKey: GROQ_API_KEY });
 
 // System Instruction Generator
-async function getSystemInstruction() {
-  try {
-    const knowledgePath = path.join(process.cwd(), 'RAG', 'knowledge.txt');
-    const knowledgeContent = await fs.readFile(knowledgePath, 'utf-8');
-    return `Kamu adalah Revis, AI Assistant pribadi untuk portfolio Yafie Yulianto (seorang GenAI Engineer & AI Enthusiast).
+function getSystemInstruction() {
+  return `Kamu adalah Revis, AI Assistant pribadi untuk portfolio Yafie Yulianto (seorang GenAI Engineer & AI Enthusiast).
 Tugas utamamu adalah menjawab pertanyaan pengunjung website dengan ramah, profesional, antusias, dan informatif.
 Gunakan informasi dalam KNOWLEDGE BASE di bawah ini untuk menjawab pertanyaan. Jika ada yang bertanya di luar konteks Yafie Yulianto atau tidak ada di knowledge base, jawablah secara sopan bahwa kamu hanya dikhususkan untuk membantu informasi seputar Yafie Yulianto. Jangan mengarang informasi. Berikan respon yang ringkas namun bermanfaat.
 
 KNOWLEDGE BASE:
-${knowledgeContent}
+${KNOWLEDGE_BASE}
 `;
-  } catch (error) {
-    console.error("Error reading knowledge.txt", error);
-    return "Kamu adalah Revis, AI Assistant pribadi untuk Yafie Yulianto.";
-  }
 }
 
 export async function POST(req: Request) {
@@ -38,7 +30,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Invalid messages format" }, { status: 400 });
     }
 
-    const systemInstruction = await getSystemInstruction();
+    const systemInstruction = getSystemInstruction();
     const latestUserMessage = messages[messages.length - 1].content;
 
     // Build chat history for Gemini (excluding the system prompt / standardizing format)
